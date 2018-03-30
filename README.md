@@ -1,6 +1,8 @@
 # UnityTile3D
 Simple 3D Tile Editor. *Contributions Welcome!*
 
+![Screenshot](https://raw.githubusercontent.com/NoelFB/UnityTile3D/master/screenshot.png)
+
 ## Todo
 - Improve Palette / Painting tools, particularily with rotation / flipping
 - Add Slopes, or perhaps variations on the kinds of "blocks" you can place
