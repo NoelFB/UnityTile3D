@@ -400,7 +400,7 @@ public class Tile3DEditor : Editor
         // tiles
         if (tiler.Texture == null)
         {
-            GUI.Label(new Rect(left, 64, width, 80), "Requires a Material\nwith a Texture");
+            GUI.Label(new Rect(left, 120, width, 80), "Requires a Material\nwith a Texture");
         }
         else
         {
