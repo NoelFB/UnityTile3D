@@ -63,14 +63,17 @@ public class Tile3D : MonoBehaviour
         private List<Vector3> vertices = new List<Vector3>();
         private List<Vector2> uvs = new List<Vector2>();
         private List<int> triangles = new List<int>();
+        private bool collider;
         private Vector2 uvTileSize;
         private float tilePadding;
         private float vertexNoise;
         private Vector2[] temp = new Vector2[4];
 
-        public MeshBuilder()
+        public MeshBuilder(bool collider)
         {
             Mesh = new Mesh();
+            Mesh.name = (collider ? "Tile3D Editor Collision Mesh" : "Tile3D Render Mesh");
+            this.collider = collider;
         }
 
         public void Begin(Vector2 uvTileSize, float tilePadding)
@@ -85,7 +88,7 @@ public class Tile3D : MonoBehaviour
 
         public void Quad(Vector3 a, Vector3 b, Vector3 c, Vector3 d, Face face)
         {
-            if (face.Hidden)
+            if (face.Hidden && !collider)
                 return;
 
             var start = vertices.Count;
@@ -99,20 +102,27 @@ public class Tile3D : MonoBehaviour
             // add UVs
             Vector2 uva, uvb, uvc, uvd;
             {
-                var center = new Vector2(face.Tile.x + 0.5f, face.Tile.y + 0.5f);
-                var s = 0.5f - tilePadding;
-                var flipx = (face.FlipX ? -1 : 1);
-                var flipy = (face.FlipY ? -1 : 1);
+                if (!collider)
+                {
+                    var center = new Vector2(face.Tile.x + 0.5f, face.Tile.y + 0.5f);
+                    var s = 0.5f - tilePadding;
+                    var flipx = (face.FlipX ? -1 : 1);
+                    var flipy = (face.FlipY ? -1 : 1);
 
-                temp[0] = new Vector2((center.x + s * flipx) * uvTileSize.x, (center.y - s * flipy) * uvTileSize.y);
-                temp[1] = new Vector2((center.x - s * flipx) * uvTileSize.x, (center.y - s * flipy) * uvTileSize.y);
-                temp[2] = new Vector2((center.x - s * flipx) * uvTileSize.x, (center.y + s * flipy) * uvTileSize.y);
-                temp[3] = new Vector2((center.x + s * flipx) * uvTileSize.x, (center.y + s * flipy) * uvTileSize.y);
+                    temp[0] = new Vector2((center.x + s * flipx) * uvTileSize.x, (center.y - s * flipy) * uvTileSize.y);
+                    temp[1] = new Vector2((center.x - s * flipx) * uvTileSize.x, (center.y - s * flipy) * uvTileSize.y);
+                    temp[2] = new Vector2((center.x - s * flipx) * uvTileSize.x, (center.y + s * flipy) * uvTileSize.y);
+                    temp[3] = new Vector2((center.x + s * flipx) * uvTileSize.x, (center.y + s * flipy) * uvTileSize.y);
 
-                uva = temp[(face.Rotation + 0) % 4];
-                uvb = temp[(face.Rotation + 1) % 4];
-                uvc = temp[(face.Rotation + 2) % 4];
-                uvd = temp[(face.Rotation + 3) % 4];
+                    uva = temp[(face.Rotation + 0) % 4];
+                    uvb = temp[(face.Rotation + 1) % 4];
+                    uvc = temp[(face.Rotation + 2) % 4];
+                    uvd = temp[(face.Rotation + 3) % 4];
+                }
+                else
+                {
+                    uva = uvb = uvc = uvd = Vector2.zero;
+                }
 
                 uvs.Add(uva);
                 uvs.Add(uvb);
@@ -132,15 +142,15 @@ public class Tile3D : MonoBehaviour
         public void End()
         {
             Mesh.Clear();
-            Mesh.SetVertices(vertices);
-            Mesh.SetUVs(0, uvs);
-            Mesh.SetTriangles(triangles, 0);
+            Mesh.vertices = vertices.ToArray();
+            Mesh.uv = uvs.ToArray();
+            Mesh.triangles = triangles.ToArray();
             Mesh.RecalculateBounds();
             Mesh.RecalculateNormals();
         }
     }
 
-    //[HideInInspector]
+    [HideInInspector]
     public List<Block> Blocks;
     public int TileWidth = 16;
     public int TileHeight = 16;
@@ -171,7 +181,8 @@ public class Tile3D : MonoBehaviour
     private MeshRenderer meshRenderer;
     private MeshFilter meshFiler;
     private MeshCollider meshCollider;
-    private MeshBuilder meshBuilder;
+    private MeshBuilder renderMeshBuilder;
+    private MeshBuilder colliderMeshBuilder;
 
     private void OnEnable()
     {
@@ -180,12 +191,13 @@ public class Tile3D : MonoBehaviour
         meshCollider = GetComponent<MeshCollider>();
         
         // create initial mesh
-        if (meshBuilder == null)
+        if (renderMeshBuilder == null)
         {
-            meshBuilder = new MeshBuilder();
+            renderMeshBuilder = new MeshBuilder(false);
+            colliderMeshBuilder = new MeshBuilder(true);
 
-            meshFiler.sharedMesh = meshBuilder.Mesh;
-            meshCollider.sharedMesh = meshBuilder.Mesh;
+            meshFiler.sharedMesh = renderMeshBuilder.Mesh;
+            meshCollider.sharedMesh = colliderMeshBuilder.Mesh;
         }
 
         // reconstruct map
@@ -193,7 +205,7 @@ public class Tile3D : MonoBehaviour
         {
             RebuildBlockMap();
         }
-		
+
         // make initial cells
         if (Blocks == null)
         {
@@ -245,7 +257,7 @@ public class Tile3D : MonoBehaviour
             return block;
         return null;
     }
-    
+
     public void RebuildBlockMap()
     {
         map = new Dictionary<Vector3Int, Block>();
@@ -256,8 +268,9 @@ public class Tile3D : MonoBehaviour
 
     public void Rebuild()
     {
-        meshBuilder.Begin(UVTileSize, TilePadding);
-        
+        renderMeshBuilder.Begin(UVTileSize, TilePadding);
+        colliderMeshBuilder.Begin(UVTileSize, TilePadding);
+
         // generate each block
         foreach (var block in Blocks)
         {
@@ -271,12 +284,12 @@ public class Tile3D : MonoBehaviour
             }
         }
 
-        meshBuilder.End();
+        renderMeshBuilder.End();
+        colliderMeshBuilder.End();
 
-        meshFiler.sharedMesh = null;
-        meshFiler.sharedMesh = meshBuilder.Mesh;
+        meshFiler.sharedMesh = renderMeshBuilder.Mesh;
         meshCollider.sharedMesh = null;
-        meshCollider.sharedMesh = meshBuilder.Mesh;
+        meshCollider.sharedMesh = colliderMeshBuilder.Mesh;
     }
 
     private void BuildFace(Vector3 center, Block block, Vector3 normal, Face face)
@@ -294,8 +307,8 @@ public class Tile3D : MonoBehaviour
         var c = front + (perp1 + -perp2) * 0.5f;
         var d = front + (-perp1 + -perp2) * 0.5f;
 
-        meshBuilder.Quad(a, b, c, d, face);
+        renderMeshBuilder.Quad(a, b, c, d, face);
+        colliderMeshBuilder.Quad(a, b, c, d, face);
     }
-
 
 }

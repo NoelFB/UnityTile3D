@@ -51,7 +51,7 @@ public class Tile3DEditor : Editor
     private SingleSelection hover = null;
     private MultiSelection selected = null;
     private Tile3D.Face brush = new Tile3D.Face() { Hidden = true };
-
+    
     private void OnEnable()
     {
         Undo.undoRedoPerformed += OnUndoRedo;
@@ -66,7 +66,7 @@ public class Tile3DEditor : Editor
     {
         DrawDefaultInspector();
         
-        if (GUILayout.Button("Rebuild Mesh") )
+        if (GUILayout.Button("Rebuild Mesh"))
             tiler.Rebuild();
     }
 
@@ -235,6 +235,7 @@ public class Tile3DEditor : Editor
     private bool SetBlockFace(Tile3D.Block block, Vector3 normal, Tile3D.Face brush)
     {
         Undo.RecordObject(target, "SetBlockFaces");
+
         for (int i = 0; i < Tile3D.Faces.Length; i++)
         {
             if (Vector3.Dot(normal, Tile3D.Faces[i]) > 0.8f)
