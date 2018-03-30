@@ -203,10 +203,7 @@ public class Tile3D : MonoBehaviour
         // reconstruct map
         if (map == null)
         {
-            map = new Dictionary<Vector3Int, Block>();
-            if (Blocks != null)
-                foreach (var cell in Blocks)
-                    map.Add(cell.Tile, cell);
+            RebuildBlockMap();
         }
 
         // make initial cells
@@ -259,6 +256,14 @@ public class Tile3D : MonoBehaviour
         if (map.TryGetValue(at, out block))
             return block;
         return null;
+    }
+
+    public void RebuildBlockMap()
+    {
+        map = new Dictionary<Vector3Int, Block>();
+        if (Blocks != null)
+            foreach (var cell in Blocks)
+                map.Add(cell.Tile, cell);
     }
 
     public void Rebuild()
