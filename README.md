@@ -1,5 +1,5 @@
 # UnityTile3D
-Simple 3D Tile Editor
+Simple 3D Tile Editor. *Contributions Welcome!*
 
 ## Todo
 - Improve Palette / Painting tools, particularily with rotation / flipping
