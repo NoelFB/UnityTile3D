@@ -52,11 +52,21 @@ public class Tile3DEditor : Editor
     private MultiSelection selected = null;
     private Tile3D.Face brush = new Tile3D.Face() { Hidden = true };
 
+    private void OnEnable()
+    {
+        Undo.undoRedoPerformed += OnUndoRedo;
+    }
+
+    private void OnDisable()
+    {
+        Undo.undoRedoPerformed -= OnUndoRedo;
+    }
+
     public override void OnInspectorGUI()
     {
         DrawDefaultInspector();
         
-        if (GUILayout.Button("Rebuild Mesh"))
+        if (GUILayout.Button("Rebuild Mesh") )
             tiler.Rebuild();
     }
 
@@ -107,6 +117,8 @@ public class Tile3DEditor : Editor
 
                 if (EditorGUI.EndChangeCheck())
                 {
+                    Undo.RecordObject(target, "EditMesh");
+
                     draggingBlock = true;
                     if (hover != null)
                     {
@@ -222,6 +234,7 @@ public class Tile3DEditor : Editor
 
     private bool SetBlockFace(Tile3D.Block block, Vector3 normal, Tile3D.Face brush)
     {
+        Undo.RecordObject(target, "SetBlockFaces");
         for (int i = 0; i < Tile3D.Faces.Length; i++)
         {
             if (Vector3.Dot(normal, Tile3D.Faces[i]) > 0.8f)
@@ -460,5 +473,17 @@ public class Tile3DEditor : Editor
             e.Use();
 
         return pressed;
+    }
+
+    void OnUndoRedo()
+    {
+        var tar = target as Tile3D;
+        selected = null;
+        hover = null;
+        // After an undo the underlying block dictionary is out of sync with
+        // the blocks list. Blocks have been removed, dictionary hasn't been
+        // updated yet which causes artifacts during rebuild. So - update it.
+        tar.RebuildBlockMap();
+        tar.Rebuild();
     }
 }
