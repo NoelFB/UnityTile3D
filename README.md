@@ -1,3 +1,10 @@
+
+---
+
+**★ I am not maintaining this and do not know if it works with the latest version of Unity! Feel free to mess with it though ★**
+
+---
+
 # UnityTile3D
 Simple 3D Tile Editor. *Contributions Welcome!*
 
